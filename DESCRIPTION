@@ -10,7 +10,8 @@ RoxygenNote: 6.1.0.9000
 Imports:
   rlang,
   numDeriv
-  
 Suggests:
- testthat
+  testthat,  
+  rlang,
+  numDeriv
  
