@@ -16,8 +16,8 @@
 #' sample = ars(h = h,start = -Inf , end = Inf,N = 100)
 #' hist(sample)
 ars = function(h,start,end,N,k = 3,x1 = NULL,xk = NULL){
-  library(rlang)
-  library(numDeriv)
+  library(rlang,verbose = F)
+  library(numDeriv,verbose = F)
   ## function input check
   if(!is.function(h)){
     stop("Please input a valid function h")
