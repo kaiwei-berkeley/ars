@@ -107,9 +107,9 @@ test_that("mode_finding",{
 })
 
 
-# Test7. ars result test
-print("Test7. ars result test")
-test_that("ars result test",{
+# Test7. ars result ks.test
+print("Test7. ars result ks.test")
+test_that("ars result ks.test",{
   ## sample from normal
   f = function(x) {dnorm(x, mean=10, sd=1)}
   start = -Inf

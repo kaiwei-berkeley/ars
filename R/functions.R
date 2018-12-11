@@ -1,7 +1,7 @@
 library(rlang)
 library(numDeriv)
 library(testthat)
-library(assertthat)
+
 ### Checking function
 convert_log <- function(f) {
   # constructing the log of the input function
