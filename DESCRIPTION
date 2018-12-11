@@ -7,13 +7,5 @@ Description: Adaptive Rejection Sampling from log-concave density functions h(x)
 License: GPL-2
 Encoding: UTF-8
 RoxygenNote: 6.1.0.9000
-Imports:
-  numDeriv,
-  rlang,
-  testthat,
-  assertthat
-Suggests: 
-  numDeriv,
-  rlang,
-  testthat,
-  assertthat
+
+
