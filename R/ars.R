@@ -1,6 +1,6 @@
 #' @title Adeptive Rejection Sampling
 #' @description Adaptive Rejection Sampling from log-concave density functions h(x)
-#' @param h the original function we want to sample from, the function h should only takes one argument x. i.e. correct: h = function(x) {dnorm(x,0,1)}; wrong: h = function(x,mean = 0,sd = 1){dnorm(x,mean,sd)}
+#' @param h the original function we want to sample from, the function h should only takes one argument x. i.e. correct: h = function(x) \{dnorm(x,0,1)\}; wrong: h = function(x,mean = 0,sd = 1) \{dnorm(x,mean,sd)}
 #' @param start lower bound of the domain of h(x)
 #' @param end upper bound of the domain of h(x)
 #' @param N sample size
@@ -42,21 +42,23 @@ ars = function(h,start,end,N,k = 3,x1 = NULL,xk = NULL){
   }
 
   # choosing the starting point
-  if (!is.infinite(start) && !is.infinite(end)) {
-    x1_choose = start + 0.01
-    xk_choose = end - 0.01
-  } else {
-    result = suppressWarnings(initial_point_sample(h, start, end))
-    x1_choose = result[1]
-    xk_choose = result[3]
-  }
+  if(is.null(x1)|is.null(xk)){
+    if (!is.infinite(start) && !is.infinite(end)) {
+      x1_choose = start + 0.01
+      xk_choose = end - 0.01
+    } else {
+      result = suppressWarnings(initial_point_sample(h, start, end))
+      x1_choose = result[1]
+      xk_choose = result[3]
+    }
 
-  # if the user don't specify, we will choose the starting point for them
-  if (is.null(x1)) {
-    x1 = x1_choose
-  }
-  if (is.null(xk)) {
-    xk = xk_choose
+    # if the user don't specify, we will choose the starting point for them
+    if (is.null(x1)) {
+      x1 = x1_choose
+    }
+    if (is.null(xk)) {
+      xk = xk_choose
+    }
   }
 
 

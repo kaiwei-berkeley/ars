@@ -277,6 +277,9 @@ samp_ars  = function(f,Tk,start,end,zlist){
   # generate the random value
   u2 = runif(1,0,1);
   x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
+  if(is.infinite(x_start)){
+    stop("Generated numbers that exceed machine maximum, try to run again or modify the input h(x)")
+  }
   return(x_star)
 }
 
