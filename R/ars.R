@@ -82,15 +82,6 @@ ars = function(h,start,end,N,k = 3,x1 = NULL,xk = NULL){
     x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
     return(x_star)
   } else if (case == 3) {
-    # domain check
-    # x1 and xk should within domain
-    # give error or warning
-    ####
-
-    ###
-    # check the initial slope for Tk
-    # not to be inf
-    ###
 
     ### Initialize Tk,l,u,s,z
     Tk = initial_Tk(f,x1,xk, k = k); zlist = initial_zlist(f,Tk,start,end)
