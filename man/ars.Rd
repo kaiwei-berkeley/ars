@@ -2,7 +2,7 @@
 % Please edit documentation in R/ars.R
 \name{ars}
 \alias{ars}
-\title{Adeptive Rejection Sampling}
+\title{Adaptive Rejection Sampling}
 \usage{
 ars(h, start, end, N, k = 3, x1 = NULL, xk = NULL)
 }
