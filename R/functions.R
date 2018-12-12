@@ -1,7 +1,6 @@
 library(rlang)
 library(numDeriv)
 library(testthat)
-
 ### Checking function
 convert_log <- function(f) {
   # constructing the log of the input function
@@ -107,12 +106,28 @@ initial_zlist = function(f,Tk,start,end){
 ### call this before update Tk
 ### given previous z list, previous Tk and x_star; return a list of updated z, and updated slope
 update_zlist = function(f,zlist,Tk,x){
-  ind = ifelse(x>max(Tk),length(Tk),min(which(x<Tk)))
+  ind = ifelse(x>max(Tk),length(Tk)+1,min(which(x<Tk)))
+  df_new = (f(x+0.0001)-f(x))/0.0001
+
+  if (ind == length(Tk)+1) {
+    z = zlist[[1]]; slope = zlist[[2]]
+    Tk = update_Tk(Tk,new_x = x)
+    j = length(Tk)
+
+    slope[length(Tk)] = df_new
+
+    df1 = slope[j-1]; df2 = slope[j]
+    z[length(Tk)] = (f(Tk[j])-f(Tk[j-1])-Tk[j]*df2+Tk[j-1]*df1) / (df1-df2)
+
+    zlist = list(z, slope)
+    return(zlist)
+  }
+
   Tk = update_Tk(Tk,new_x = x) ## room for improvement
   z = zlist[[1]]
   slope = zlist[[2]]
   ## update slope vector
-  df_new = numDeriv::grad(func = f,x = x, method = "simple")
+  #df_new = numDeriv::grad(func = f,x = x, method = "simple")
   slope[(ind+1):(length(slope)+1)] = slope[ind:length(slope)]
   slope[ind] = df_new
 
@@ -137,10 +152,8 @@ update_zlist = function(f,zlist,Tk,x){
 samp_ars  = function(f,Tk,start,end,zlist){
   u1 = runif(1,0,1)
   # Initialize values we are going to use
-  k = length(Tk);
-  df = zlist[[2]];
-  intercept = numeric(); area = numeric();
-  left_val = numeric(); right_val = numeric();
+  k = length(Tk); df = zlist[[2]];
+  intercept = numeric(); area = numeric(); left_val = numeric(); right_val = numeric();
   slope = numeric()
   # left_val and right_val are vectors we use to identify the starting and ending point of the segment we want to sample from
   j = 1
@@ -159,16 +172,272 @@ samp_ars  = function(f,Tk,start,end,zlist){
     slope[1] = df[1]
     # count variable for all the initial vector
     j = length(area) + 1
+  } else {
+    slope1 = df[1]
+    intercept1 = f(Tk[1]) - slope1*Tk[1]
+    area1 = exp(intercept1)/slope1*(exp(slope1*Tk[1]) - exp(slope1*zlist[[1]][1]))
+    area[j] = area1
+    left_val[j] = zlist[[1]][1]
+    right_val[j] = Tk[1]
+    slope[j] = slope1
 
-  } else {slope1 = df[1]
-  intercept1 = f(Tk[1]) - slope1*Tk[1]
-  area1 = exp(intercept1)/slope1*(exp(slope1*Tk[1]) - exp(slope1*zlist[[1]][1]))
-  area[j] = area1
-  left_val[j] = zlist[[1]][1]
-  right_val[j] = Tk[1]
-  slope[j] = slope1
+    j = length(area) + 1
+  }
 
-  j = length(area) + 1
+  # Loops all over the interior segments
+  for (i in 1:(length(Tk)-1)) {
+
+    # The left slope and intercept of each upper hull
+    df1 = df[i]
+    intercept1 = f(Tk[i]) - df1*Tk[i]
+
+    # The right slope and intercept of each upper hull
+    df2 = df[i+1]
+    intercept2 = f(Tk[i+1]) - df2*Tk[i+1]
+
+    # intersection point
+    z = zlist[[1]][i+1]
+
+    # get the left area
+    pr1 = exp(intercept1)/df1*(exp(df1*z) - exp(df1*Tk[i]))
+
+
+    # storing all the values for the left upper hull
+    area[j] = pr1; slope[j] = df1; intercept[j] = intercept1; left_val[j] = Tk[i]; right_val[j] = z
+
+    # increase the count
+    j = length(area) + 1
+
+    # get the right area
+    pr2 = exp(intercept2)/df2*(exp(df2*Tk[i+1]) - exp(df2*z))
+
+    # storing all the values for the right upper hull
+    area[j] = pr2; slope[j] = df2; intercept[j] = intercept2; left_val[j] = z; right_val[j] = Tk[i+1]
+
+    j = length(area) + 1
+  }
+
+
+
+  # If -Inf is the upper bound then use
+  # the slope of Tk[1] and calculate the intercept
+  if (is.infinite(end)) {
+    slope[j] = df[k]
+    intercept[j] = f(Tk[k]) - slope[j]*Tk[k]
+    area[j] = exp(intercept[j])/slope[j]*(0-exp(slope[j]*Tk[k]))
+    left_val[j] = Tk[k]
+    right_val[j] = Inf
+  } else {
+    slope_k = df[k]
+    intercept_k = f(Tk[k]) - slope_k*Tk[k]
+    area_k = exp(intercept_k)/slope_k*(exp(slope_k*end) - exp(slope_k*Tk[k]))
+    area[j] = area_k
+    left_val[j] = Tk[k]
+    right_val[j] = end
+    slope[j] = slope_k
+  }
+
+  # Summing all vector and create the probability vector of each segment. Then
+  # create the cdf of the upper hull function
+  T = sum(area); prob_vec = area/T; cdf = cumsum(prob_vec)
+  len = length(prob_vec)
+  # get the segment index of the segment we want to use
+
+  # here I tried to avoid the error Error in if (index[i] == 0 | index[i] == length(Tk)) { :
+  # missing value where TRUE/FALSE needed
+  # In addition: There were 11 warnings (use warnings() to see them)
+  ##########################################
+  # ---- but it seems like it does not work
+
+
+  # if (is.infinite(min(which(u1<cdf)))) {
+  #  ind = sample(c(1:len), 1)
+  # } else {
+  #  ind = min(which(u1<cdf))}
+  if (length(which(u1<=cdf)) == 0) {
+    ind = sample(c(1:len), 1)
+  } else {
+    ind = min(which(u1<=cdf))
+  }
+
+  # retrieve the values for slope, intercept, left, and right values of the segment chosen
+  m = slope[ind]; b = intercept[ind]; left = left_val[ind]; right = right_val[ind]
+
+  # generate the random value
+  u2 = runif(1,0,1);
+
+  # calculate the x_star values
+  # if(m == 0){
+  #   x_star = (right-left)*u2 + left
+  # }else{
+  # }
+  x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
+  return(x_star)
+}
+
+samp_ars3  = function(f,Tk,start,end,zlist){
+  u1 = runif(1,0,1)
+  # Initialize values we are going to use
+  k = length(Tk); df = zlist[[2]];
+  intercept = numeric(); area = numeric(); left_val = numeric(); right_val = numeric();
+  slope = numeric()
+  # left_val and right_val are vectors we use to identify the starting and ending point of the segment we want to sample from
+  j = 1
+
+  # If -Inf is the lower bound then use
+  # the slope of Tk[1] and calculate the intercept
+  if (is.infinite(start)) {
+    intercept[1] = f(Tk[1]) - df[1]*Tk[1]
+
+    # area obtained by integrate from -Inf to Tk[1] as well as the left and
+    # right value for each segment
+    area[1] = exp(intercept[1])/df[1]*(exp(df[1]*Tk[1])-0)
+    left_val[1] = -Inf
+    right_val[1] = Tk[1]
+
+    slope[1] = df[1]
+    # count variable for all the initial vector
+    j = length(area) + 1
+  } else {
+    slope1 = df[1]
+    intercept1 = f(Tk[1]) - slope1*Tk[1]
+    area1 = exp(intercept1)/slope1*(exp(slope1*Tk[1]) - exp(slope1*zlist[[1]][1]))
+    area[j] = area1
+    left_val[j] = zlist[[1]][1]
+    right_val[j] = Tk[1]
+    slope[j] = slope1
+
+    j = length(area) + 1
+  }
+
+  # Loops all over the interior segments
+  for (i in 1:(length(Tk)-1)) {
+
+    # The left slope and intercept of each upper hull
+    df1 = df[i]
+    intercept1 = f(Tk[i]) - df1*Tk[i]
+
+    # The right slope and intercept of each upper hull
+    df2 = df[i+1]
+    intercept2 = f(Tk[i+1]) - df2*Tk[i+1]
+
+    # intersection point
+    z = zlist[[1]][i+1]
+
+    # get the left area
+    pr1 = exp(intercept1)/df1*(exp(df1*z) - exp(df1*Tk[i]))
+
+
+    # storing all the values for the left upper hull
+    area[j] = pr1; slope[j] = df1; intercept[j] = intercept1; left_val[j] = Tk[i]; right_val[j] = z
+
+    # increase the count
+    j = length(area) + 1
+
+    # get the right area
+    pr2 = exp(intercept2)/df2*(exp(df2*Tk[i+1]) - exp(df2*z))
+
+    # storing all the values for the right upper hull
+    area[j] = pr2; slope[j] = df2; intercept[j] = intercept2; left_val[j] = z; right_val[j] = Tk[i+1]
+
+    j = length(area) + 1
+  }
+
+
+
+  # If -Inf is the upper bound then use
+  # the slope of Tk[1] and calculate the intercept
+  if (is.infinite(end)) {
+    slope[j] = df[k]
+    intercept[j] = f(Tk[k]) - slope[j]*Tk[k]
+    area[j] = exp(intercept[j])/slope[j]*(0-exp(slope[j]*Tk[k]))
+    left_val[j] = Tk[k]
+    right_val[j] = Inf
+  } else {
+    slope_k = df[k]
+    intercept_k = f(Tk[k]) - slope_k*Tk[k]
+    area_k = exp(intercept_k)/slope_k*(exp(slope_k*end) - exp(slope_k*Tk[k]))
+    area[j] = area_k
+    left_val[j] = Tk[k]
+    right_val[j] = end
+    slope[j] = slope_k
+  }
+
+  # Summing all vector and create the probability vector of each segment. Then
+  # create the cdf of the upper hull function
+  T = sum(area); prob_vec = area/T; cdf = cumsum(prob_vec)
+  len = length(prob_vec)
+  # get the segment index of the segment we want to use
+
+  # here I tried to avoid the error Error in if (index[i] == 0 | index[i] == length(Tk)) { :
+  # missing value where TRUE/FALSE needed
+  # In addition: There were 11 warnings (use warnings() to see them)
+  ##########################################
+  # ---- but it seems like it does not work
+
+
+  # if (is.infinite(min(which(u1<cdf)))) {
+  #  ind = sample(c(1:len), 1)
+  # } else {
+  #  ind = min(which(u1<cdf))}
+  if (length(which(u1<=cdf)) == 0) {
+    ind = sample(c(1:len), 1)
+  } else {
+    ind = min(which(u1<=cdf))
+  }
+
+  # retrieve the values for slope, intercept, left, and right values of the segment chosen
+  m = slope[ind]; b = intercept[ind]; left = left_val[ind]; right = right_val[ind]
+
+  # generate the random value
+  u2 = runif(1,0,1);
+
+  # calculate the x_star values
+  # if(m == 0){
+  #   x_star = (right-left)*u2 + left
+  # }else{
+  # }
+  x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
+  return(x_star)
+}
+
+
+
+samp_ars2  = function(f,Tk,start,end,zlist){
+  u1 = runif(1,0,1)
+  # Initialize values we are going to use
+  k = length(Tk);
+  df = zlist[[2]];
+  intercept = numeric(); area = numeric();
+  left_val = numeric(); right_val = numeric(); slope = numeric()
+  # left_val and right_val are vectors we use to identify the starting and ending point of the segment we want to sample from
+  j = 1
+
+  # If -Inf is the lower bound then use
+  # the slope of Tk[1] and calculate the intercept
+  if (is.infinite(start)) {
+    intercept[1] = f(Tk[1]) - df[1]*Tk[1]
+
+    # area obtained by integrate from -Inf to Tk[1] as well as the left and
+    # right value for each segment
+    area[1] = exp(intercept[1])/df[1]*(exp(df[1]*Tk[1])-0)
+    left_val[1] = -Inf
+    right_val[1] = Tk[1]
+
+    slope[1] = df[1]
+    # count variable for all the initial vector
+    j = length(area) + 1
+
+  } else {
+    slope1 = df[1]
+    intercept1 = f(Tk[1]) - slope1*Tk[1]
+    area1 = exp(intercept1)/slope1*(exp(slope1*Tk[1]) - exp(slope1*zlist[[1]][1]))
+    area[j] = area1
+    left_val[j] = zlist[[1]][1]
+    right_val[j] = Tk[1]
+    slope[j] = slope1
+
+    j = length(area) + 1
   }
 
   # For each interior segment
@@ -179,7 +448,7 @@ samp_ars  = function(f,Tk,start,end,zlist){
   df1 <- df[index]
   intercept_total <- f(Tk) - df*Tk
   intercept1 <- intercept_total[index]
-  # The right slope and intercept of each upper hull
+  # The right and intercept of each upper hull
   df2 = df[index+1]
   intercept2 <- intercept_total[index_plus]
   # intersection point
@@ -239,10 +508,11 @@ samp_ars  = function(f,Tk,start,end,zlist){
   #  ind = sample(c(1:len), 1)
   # } else {
   #  ind = min(which(u1<cdf))}
-  if (length(which(u1<=cdf)) == 0) {
+  m <- which(u1 <= cdf)
+  if (length(m) == 0) {
     ind = sample(c(1:len), 1)
   } else {
-    ind = min(which(u1<=cdf))
+    ind = min(m)
   }
 
   # retrieve the values for slope, intercept, left, and right values of the segment chosen
@@ -258,61 +528,6 @@ samp_ars  = function(f,Tk,start,end,zlist){
 
 # this function is used when either of the lower bound or upper bound is bounded
 # i.e. D =[-Inf,a] or [a,Inf] or [-Inf,Inf]
-initial_point_sample = function(f,start,end) {
-  # f should be the orginal function ####
-  h = convert_log(f)
-  # convert the domain so it's no longer unbounded
-  start_new = exp(start)/(1+exp(start))
-  end_new = 1/(1/exp(end)+1)
-
-  # convert using log_odd transformation
-  log_odd_f = log_odd_transform(f)
-  optimal_approx = mode_finding(log_odd_f,start_new,end_new)
-
-  # finding optimal left point
-  if (is.infinite(start)) {
-    x1 = optimal_point_left(h,optimal_approx)
-  } else {x1 = start + 0.01}
-  # finding optimal right point
-  if (is.infinite(end)) {
-    xk = optimal_point_right(h,optimal_approx)
-  } else {xk = end - 0.01}
-
-  result = c(x1,optimal_approx,xk)
-  return(result)
-}
-
-#### optimize function
-mode_finding= function(f, start, end) {
-  start_new = exp(start)/(1+exp(start))
-
-  end_new = 1/(1/exp(end)+1)
-
-  expected_val = optimize(f, c(start_new, end_new), maximum = TRUE)$maximum
-  expected_val = round(expected_val, digits = 8)
-
-  if (expected_val - start_new < 0.001) {
-    while (TRUE) {
-      start_new = start_new - 10
-      expected_val = optimize(f, c(start_new, end_new), maximum = TRUE)$maximum
-      expected_val = round(expected_val, digits = 8)
-      if (expected_val - start_new < 0.001) {
-        start_new = start_new - 10
-      } else break
-    }
-  } else if (end_new - expected_val < 0.001) {
-    while (TRUE) {
-      end_new = end_new + 10
-      expected_val = optimize(f, c(start_new, end_new), maximum = TRUE)$maximum
-      expected_val = round(expected_val, digits = 8)
-      if (end_new - expected_val < 0.001) {
-        end_new = end_new + 10
-      } else break
-    }
-  }
-  return(expected_val)
-}
-
 log_odd_transform = function(f) {
   # constructing the log of the input function
   log_odd_f = function(x) {}
@@ -371,4 +586,64 @@ optimal_point_right <- function(f,expected_val){
     n = n/2
   }
   return(expected_val)
+}
+
+
+
+
+
+# this function is used when either of the lower bound or upper bound is bounded
+# i.e. D =[-Inf,a] or [a,Inf] or [-Inf,Inf]
+initial_point_sample = function(f,start,end) {
+  # f should be the orginal function ####
+  h = convert_log(f)
+
+  # convert using log_odd transformation
+  optimal_approx = mode_finding(f,start)
+
+
+  # finding optimal left point
+  if (is.infinite(start)) {
+    x1 = optimal_point_left(h,optimal_approx)
+  } else {x1 = start + 0.01}
+  # finding optimal right point
+  if (is.infinite(end)) {
+    xk = optimal_point_right(h,optimal_approx)
+  } else {xk = end - 0.01}
+
+  result = c(x1,optimal_approx,xk)
+  return(result)
+}
+
+#### optimize function
+mode_finding = function(f,start) {
+  if (is.infinite(start)) {
+    start_new = -100000
+  } else {start_new = start}
+  stop1 = FALSE
+  while (stop1 == FALSE) {
+    a = seq(from = start_new, to = (start_new + 50.001), length.out = 500)
+    fa = f(a)
+    b = seq(from = (start_new + 50.001), to = (start_new + 100.002), length.out = 500)
+    fb = f(b)
+    max_val_a = max(fa)
+    max_val_b = max(fb)
+    max_val_ind_a = which.max(fa)
+    max_val_ind_b = which.max(fb)
+    if (max_val_a > max_val_b) {
+      stop1 = TRUE
+    } else {
+      start_new = start_new + 100.002
+    }
+  }
+  start_opt = a[max_val_ind_a]
+  end_opt = b[max_val_ind_b]
+  a = seq(from = start_opt, to = end_opt, by = 0.5)
+  fa = f(a)
+
+  max_val_a = max(fa)
+
+  max_val_ind_a = which.max(fa)
+  mode_point = a[max_val_ind_a]
+  return(mode_point + 0.01)
 }

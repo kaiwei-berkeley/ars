@@ -95,16 +95,17 @@ test_that("samp_ars",{
 print("Test6. mode_finding")
 test_that("mode_finding",{
   f <- function(x) { dnorm(x, mean=0, sd=1) }
-  expect_true(abs(mode_finding(f, -10, 10)) < 10e-6)
+  expect_true(abs(mode_finding(f, -10)) < 10e-1)
   f <- function(x) { dnorm(x, mean=10, sd=10) }
-  expect_true(abs(mode_finding(f, -100, 100) - 10) < 10e-6)
+  expect_true(abs(mode_finding(f, -100) - 10) < 10e-1)
 
   # mode of beta is given by (shape1-1)/(shape1+shape2-2)
   f = function(x) {dbeta(x,shape1 = 2 ,shape2 = 3)}
   mode = (2 - 1) / (2 + 3 - 2)
-  expect_true(abs(mode_finding(f, -1, 2) - mode) < 10e-6)
+  expect_true(abs(mode_finding(f, -1) - mode) < 10e-1)
 
 })
+
 
 
 # Test7. ars result ks.test
