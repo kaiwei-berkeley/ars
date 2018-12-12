@@ -37,6 +37,27 @@ log_concave_check <- function(log_f, x1, xk) {
   return(case)
 }
 
+domain_check <- function(log_f,D_lower, D_upper, x_lower, x_upper) {
+  if ((D_lower > D_upper)==TRUE) stop("Invalid domain")
+  else {
+
+    # here we force the user to input x_lower (x_1) and x_upper (x_k) to be valid
+    if (x_lower >= x_upper || is.infinite(x_lower) || is.infinite(x_upper)
+        || x_lower < D_lower || x_upper > D_upper) stop("Invalid lower and upper values")
+    else {
+      if ((D_lower == -Inf) == TRUE) {
+        deriv_val <- numDeriv::grad(func = log_f,
+                                    x = x_lower, method = "Richardson")
+        if ((deriv_val <= 0) == TRUE) stop("Derivative at x_1 must be positive")
+      }
+      if ((D_upper == Inf) == TRUE) {
+        deriv_val <- numDeriv::grad(func = log_f, x = x_upper, method = "Richardson")
+        if ((deriv_val >= 0) == TRUE) stop("Derivative at x_k must be negative")
+      }
+    }
+  }
+}
+
 ### Define initialize function
 initial_Tk = function(f, x1, xk, k = 3) {
   # x1 and xk should be in domain
@@ -243,17 +264,7 @@ samp_ars  = function(f,Tk,start,end,zlist){
   len = length(prob_vec)
   # get the segment index of the segment we want to use
 
-  # here I tried to avoid the error Error in if (index[i] == 0 | index[i] == length(Tk)) { :
-  # missing value where TRUE/FALSE needed
-  # In addition: There were 11 warnings (use warnings() to see them)
-  ##########################################
-  # ---- but it seems like it does not work
 
-
-  # if (is.infinite(min(which(u1<cdf)))) {
-  #  ind = sample(c(1:len), 1)
-  # } else {
-  #  ind = min(which(u1<cdf))}
   if (length(which(u1<=cdf)) == 0) {
     ind = sample(c(1:len), 1)
   } else {
@@ -265,18 +276,11 @@ samp_ars  = function(f,Tk,start,end,zlist){
 
   # generate the random value
   u2 = runif(1,0,1);
-
-  # calculate the x_star values
-  # if(m == 0){
-  #   x_star = (right-left)*u2 + left
-  # }else{
-  # }
   x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
   return(x_star)
 }
 
 samp_ars3  = function(f,Tk,start,end,zlist){
-  u1 = runif(1,0,1)
   # Initialize values we are going to use
   k = length(Tk); df = zlist[[2]];
   intercept = numeric(); area = numeric(); left_val = numeric(); right_val = numeric();
@@ -367,19 +371,9 @@ samp_ars3  = function(f,Tk,start,end,zlist){
   # create the cdf of the upper hull function
   T = sum(area); prob_vec = area/T; cdf = cumsum(prob_vec)
   len = length(prob_vec)
+
   # get the segment index of the segment we want to use
-
-  # here I tried to avoid the error Error in if (index[i] == 0 | index[i] == length(Tk)) { :
-  # missing value where TRUE/FALSE needed
-  # In addition: There were 11 warnings (use warnings() to see them)
-  ##########################################
-  # ---- but it seems like it does not work
-
-
-  # if (is.infinite(min(which(u1<cdf)))) {
-  #  ind = sample(c(1:len), 1)
-  # } else {
-  #  ind = min(which(u1<cdf))}
+  u1 = runif(1,0,1)
   if (length(which(u1<=cdf)) == 0) {
     ind = sample(c(1:len), 1)
   } else {
@@ -398,6 +392,9 @@ samp_ars3  = function(f,Tk,start,end,zlist){
   # }else{
   # }
   x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
+  if(is.infinite(x_star)){
+    stop("Generated numbers that exceed machine maximum, run again or change the input h(x)")
+  }
   return(x_star)
 }
 

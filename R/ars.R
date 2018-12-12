@@ -1,6 +1,6 @@
 #' @title Adeptive Rejection Sampling
 #' @description Adaptive Rejection Sampling from log-concave density functions h(x)
-#' @param h the original function we want to sample from
+#' @param h the original function we want to sample from, the function h should only takes one argument x. i.e. correct: h = function(x) {dnorm(x,0,1)}; wrong: h = function(x,mean = 0,sd = 1){dnorm(x,mean,sd)}
 #' @param start lower bound of the domain of h(x)
 #' @param end upper bound of the domain of h(x)
 #' @param N sample size
@@ -16,8 +16,6 @@
 #' sample = ars(h = h,start = -Inf , end = Inf,N = 100)
 #' hist(sample)
 ars = function(h,start,end,N,k = 3,x1 = NULL,xk = NULL){
-  # library(rlang,verbose = F,warn.conflicts = F)
-  # library(numDeriv,verbose = F,warn.conflicts = F)
   ## function input check
   if(!is.function(h)){
     stop("Please input a valid function h")
@@ -57,7 +55,6 @@ ars = function(h,start,end,N,k = 3,x1 = NULL,xk = NULL){
   if (is.null(x1)) {
     x1 = x1_choose
   }
-
   if (is.null(xk)) {
     xk = xk_choose
   }
@@ -65,6 +62,9 @@ ars = function(h,start,end,N,k = 3,x1 = NULL,xk = NULL){
 
   #### convert function to log
   f = convert_log(h)
+  ## domain check
+  domain_check(f,start, end, x1, xk)
+  ## concave
   case = log_concave_check(f,x1,xk)
 
   if (case == 1) {

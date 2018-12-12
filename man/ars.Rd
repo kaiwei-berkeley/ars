@@ -7,7 +7,7 @@
 ars(h, start, end, N, k = 3, x1 = NULL, xk = NULL)
 }
 \arguments{
-\item{h}{the original function we want to sample from}
+\item{h}{the original function we want to sample from, the function h should only takes one argument x. i.e. correct: h = function(x) {dnorm(x,0,1)}; wrong: h = function(x,mean = 0,sd = 1){dnorm(x,mean,sd)}}
 
 \item{start}{lower bound of the domain of h(x)}
 
