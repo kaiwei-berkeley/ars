@@ -1,6 +1,6 @@
 #' @title Adaptive Rejection Sampling
 #' @description Adaptive Rejection Sampling from log-concave density functions h(x)
-#' @param h input the original valid probability density function we want to sample from, the function h should only takes one argument x. i.e. correct: h = function(x) \{dnorm(x,0,1)\}; wrong: h = function(x,mean = 0,sd = 1) \{dnorm(x,mean,sd)\}
+#' @param h input a valid probability density function we want to sample from, the function h(x) should only take one argument x. i.e. correct: h = function(x) \{dnorm(x,0,1)\}; wrong: h = function(x,mean = 0,sd = 1) \{dnorm(x,mean,sd)\}
 #' @param start lower bound of the domain of h(x)
 #' @param end upper bound of the domain of h(x)
 #' @param N sample size

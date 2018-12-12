@@ -40,7 +40,6 @@ log_concave_check <- function(log_f, x1, xk) {
 domain_check <- function(log_f,D_lower, D_upper, x_lower, x_upper) {
   if ((D_lower > D_upper)==TRUE) stop("Invalid domain")
   else {
-
     # here we force the user to input x_lower (x_1) and x_upper (x_k) to be valid
     if (x_lower >= x_upper || is.infinite(x_lower) || is.infinite(x_upper)
         || x_lower < D_lower || x_upper > D_upper) stop("Invalid lower and upper values")
@@ -255,13 +254,6 @@ samp_ars = function(f,Tk,start,end,zlist){
   T = sum(area); prob_vec = area/T; cdf = cumsum(prob_vec)
   len = length(prob_vec)
   # get the segment index of the segment we want to use
-
-  # here I tried to avoid the error Error in if (index[i] == 0 | index[i] == length(Tk)) { :
-  # missing value where TRUE/FALSE needed
-  # In addition: There were 11 warnings (use warnings() to see them)
-  ##########################################
-  # ---- but it seems like it does not work
-
   m <- which(u1<=cdf)
   if (length(m) == 0) {
     ind = sample(c(1:len), 1)
@@ -400,3 +392,4 @@ mode_finding = function(f,start) {
   mode_point = a[max_val_ind_a]
   return(mode_point + 0.01)
 }
+
