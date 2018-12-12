@@ -126,6 +126,9 @@ initial_zlist = function(f,Tk,start,end){
     z[j] = (f(Tk[j])-f(Tk[j-1])-Tk[j]*df2+Tk[j-1]*df1)/(df1-df2)
   }
   zlist = list(z,slope)
+  if(sum(is.na(zlist[[1]]))!= 0){
+    stop("Please input valid lower and upper bound")
+  }
   return(zlist)
 }
 
@@ -270,6 +273,8 @@ samp_ars = function(f,Tk,start,end,zlist){
   x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
   if(is.infinite(x_star)){
     stop("Calculation involves numbers that exceed machine maximum, try to run again or modify the input h(x)")
+  }else if (is.na(x_star)){
+    stop("Please input a valid lower bound and upper bound")
   }
   return(x_star)
 }
