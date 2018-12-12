@@ -95,7 +95,9 @@ ars = function(h,start,end,N,k = 3,x1 = NULL,xk = NULL){
       x = samp_ars(f,Tk,start = start,end = end,zlist = zlist)
       uni = runif(1)
 
-      if(length(exp(l(x)-u(x)))!= 1| is.na(exp(l(x)-u(x)))| is.null(exp(l(x)-u(x)))){
+      if(length(exp(l(x)-u(x)))!= 1){
+        stop("Generated numbers that exceed machine maximum, try to run again or modify the input h(x)")
+      }else if(is.na(exp(l(x)-u(x)))| is.null(exp(l(x)-u(x)))){
         stop("Generated numbers that exceed machine maximum, try to run again or modify the input h(x)")
       }
       ## Squeezing Test
