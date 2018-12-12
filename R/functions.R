@@ -348,9 +348,6 @@ optimal_point_right <- function(f,expected_val){
 }
 
 
-
-
-
 # this function is used when either of the lower bound or upper bound is bounded
 # i.e. D =[-Inf,a] or [a,Inf] or [-Inf,Inf]
 initial_point_sample = function(f,start,end) {
