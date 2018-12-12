@@ -1,4 +1,4 @@
-# Adaptive Rejection Sampling
+# Adeptive Rejection Sampling
 ## Description
 Adaptive Rejection Sampling From Log-concave Density Functions h(x)
 ## Usage
