@@ -1,3 +1,0 @@
-#' @docType package
-#'
-NULL
