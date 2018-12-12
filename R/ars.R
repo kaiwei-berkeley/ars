@@ -8,8 +8,8 @@
 #' @param x1 the right starting point, if NULL, the function will find one
 #' @param xk the left starting point, if NULL, the function will find one
 #' @export
+#' @import rlang numDeriv
 #' @return a vector of N sampled value from the density h(x)
-#' @references
 #' @examples
 #' library(ars)
 #' h = function(x){dnorm(x)}

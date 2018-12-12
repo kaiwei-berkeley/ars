@@ -67,7 +67,15 @@ initial_Tk = function(f, x1, xk, k = 3) {
 
 ### Define updating function
 update_Tk = function(Tk, new_x){
-  return (sort(c(Tk, new_x)))
+  index <- findInterval(new_x, Tk)
+  if (index == length(Tk)) {
+    res <- append(Tk, new_x)
+  } else if(index == 0) {
+    res <- prepend(Tk, new_x)
+  } else {
+    res <- c(Tk[1:index], new_x, Tk[(index+1):length(Tk)])
+  }
+  return(res)
 }
 
 ##This takes updated Tk and updated z and return the updated u function
@@ -98,8 +106,6 @@ update_l = function(f, Tk) {
   }
   return(l)
 }
-
-##############################12/04 update
 
 ### This function takes Tk and return a list contain:
 # 1. z0 - zk (k+1 elements)
@@ -170,7 +176,7 @@ update_zlist = function(f,zlist,Tk,x){
 # then obtain the cdf from this so that we can sample x.
 # First generate one number to choose the line segment we will use to sample
 
-samp_ars  = function(f,Tk,start,end,zlist){
+samp_ars = function(f,Tk,start,end,zlist){
   u1 = runif(1,0,1)
   # Initialize values we are going to use
   k = length(Tk); df = zlist[[2]];
@@ -183,16 +189,12 @@ samp_ars  = function(f,Tk,start,end,zlist){
   # the slope of Tk[1] and calculate the intercept
   if (is.infinite(start)) {
     intercept[1] = f(Tk[1]) - df[1]*Tk[1]
-
     # area obtained by integrate from -Inf to Tk[1] as well as the left and
     # right value for each segment
     area[1] = exp(intercept[1])/df[1]*(exp(df[1]*Tk[1])-0)
     left_val[1] = -Inf
     right_val[1] = Tk[1]
-
     slope[1] = df[1]
-    # count variable for all the initial vector
-    j = length(area) + 1
   } else {
     slope1 = df[1]
     intercept1 = f(Tk[1]) - slope1*Tk[1]
@@ -201,44 +203,34 @@ samp_ars  = function(f,Tk,start,end,zlist){
     left_val[j] = zlist[[1]][1]
     right_val[j] = Tk[1]
     slope[j] = slope1
-
-    j = length(area) + 1
   }
+  j = length(area) + 1
 
-  # Loops all over the interior segments
-  for (i in 1:(length(Tk)-1)) {
+  # For every interior segment
+  #new_indices <- seq(from=1, to=2*length(Tk)-1, by=2)
+  indices = 1:(length(Tk) - 1)
+  # The left slope and intercept of each upper hull
+  df1 = df[indices]
+  intercept1 = f(Tk[indices]) - df1*Tk[indices]
+  # The right slope and intercept of each upper hull
+  df2 = df[indices+1]
+  intercept2 = f(Tk[indices+1]) - df2*Tk[indices+1]
+  # intersection point
+  z = zlist[[1]][indices+1]
+  # get the left area
+  pr1 = exp(intercept1)/df1*(exp(df1*z) - exp(df1*Tk[indices]))
+  # storing all the values for the left upper hull
 
-    # The left slope and intercept of each upper hull
-    df1 = df[i]
-    intercept1 = f(Tk[i]) - df1*Tk[i]
+  new_indices <- seq(from=1, to=2*(length(Tk)-1), by=2)
+  area[new_indices + 1] = pr1; slope[new_indices + 1] = df1; intercept[new_indices + 1] = intercept1;
+  left_val[new_indices + 1] = Tk[indices]; right_val[new_indices+1] = z
+  # get the right area
+  pr2 = exp(intercept2)/df2*(exp(df2*Tk[indices+1]) - exp(df2*z))
+  # storing all the values for the right upper hull
+  area[new_indices+2] = pr2; slope[new_indices+2] = df2; intercept[new_indices+2] = intercept2;
+  left_val[new_indices+2] = z; right_val[new_indices+2] = Tk[indices+1]
 
-    # The right slope and intercept of each upper hull
-    df2 = df[i+1]
-    intercept2 = f(Tk[i+1]) - df2*Tk[i+1]
-
-    # intersection point
-    z = zlist[[1]][i+1]
-
-    # get the left area
-    pr1 = exp(intercept1)/df1*(exp(df1*z) - exp(df1*Tk[i]))
-
-
-    # storing all the values for the left upper hull
-    area[j] = pr1; slope[j] = df1; intercept[j] = intercept1; left_val[j] = Tk[i]; right_val[j] = z
-
-    # increase the count
-    j = length(area) + 1
-
-    # get the right area
-    pr2 = exp(intercept2)/df2*(exp(df2*Tk[i+1]) - exp(df2*z))
-
-    # storing all the values for the right upper hull
-    area[j] = pr2; slope[j] = df2; intercept[j] = intercept2; left_val[j] = z; right_val[j] = Tk[i+1]
-
-    j = length(area) + 1
-  }
-
-
+  j = length(area) + 1
 
   # If -Inf is the upper bound then use
   # the slope of Tk[1] and calculate the intercept
@@ -264,11 +256,17 @@ samp_ars  = function(f,Tk,start,end,zlist){
   len = length(prob_vec)
   # get the segment index of the segment we want to use
 
+  # here I tried to avoid the error Error in if (index[i] == 0 | index[i] == length(Tk)) { :
+  # missing value where TRUE/FALSE needed
+  # In addition: There were 11 warnings (use warnings() to see them)
+  ##########################################
+  # ---- but it seems like it does not work
 
-  if (length(which(u1<=cdf)) == 0) {
+  m <- which(u1<=cdf)
+  if (length(m) == 0) {
     ind = sample(c(1:len), 1)
   } else {
-    ind = min(which(u1<=cdf))
+    ind = min(m)
   }
 
   # retrieve the values for slope, intercept, left, and right values of the segment chosen
@@ -276,14 +274,13 @@ samp_ars  = function(f,Tk,start,end,zlist){
 
   # generate the random value
   u2 = runif(1,0,1);
+
   x_star = log(u2*(exp(m*right) - exp(m*left)) + exp(m*left))/m
   if(is.infinite(x_star)){
-    stop("Generated numbers that exceed machine maximum, try to run again or modify the input h(x)")
+    stop("Calculation involves numbers that exceed machine maximum, try to run again or modify the input h(x)")
   }
   return(x_star)
 }
-
-
 
 # this function is used when either of the lower bound or upper bound is bounded
 # i.e. D =[-Inf,a] or [a,Inf] or [-Inf,Inf]

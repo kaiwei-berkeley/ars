@@ -112,12 +112,13 @@ test_that("mode_finding",{
 print("Test7. ars result ks.test")
 test_that("ars result ks.test",{
   ## sample from normal
-  f = function(x) {dnorm(x, mean=10, sd=1)}
+  f = function(x) {dnorm(x, mean=0, sd=1)}
   start = -Inf
   end = Inf
   sample = ars(f,start =start,end = end, N =1000, k=4)
-  t <- ks.test(sample, rnorm(1000, mean=10, sd=1))
+  t <- ks.test(sample, rnorm(1000, mean=0, sd=1))
   expect_gt(t$p.value,0.05)
+
 
   ## Sample from beta
   shape1 <- 2
